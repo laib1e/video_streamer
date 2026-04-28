@@ -5,22 +5,26 @@
 #include <optional>
 
 template<typename T, std::size_t N>
-class LockFreeQueue {
+class LockFreeQueue 
+{
     static_assert(N >= 2, "Queue size must be at least 2");
 
     std::array<T, N> buffer_{};
     alignas(64) std::atomic<std::size_t> head_{0};  // producer writes here
     alignas(64) std::atomic<std::size_t> tail_{0};  // consumer reads here
 
-    static constexpr std::size_t next(std::size_t idx) noexcept {
+    static constexpr std::size_t next(std::size_t idx) noexcept 
+    {
         return (idx + 1) % N;
     }
 
 public:
-    bool push(const T& item) {
+    bool push(const T& item) 
+    {
         const auto h = head_.load(std::memory_order_relaxed);
         const auto next_h = next(h);
-        if (next_h == tail_.load(std::memory_order_acquire)) {
+        if (next_h == tail_.load(std::memory_order_acquire)) 
+        {
             return false;  // full
         }
         buffer_[h] = item;
@@ -28,10 +32,12 @@ public:
         return true;
     }
 
-    bool push(T&& item) {
+    bool push(T&& item) 
+    {
         const auto h = head_.load(std::memory_order_relaxed);
         const auto next_h = next(h);
-        if (next_h == tail_.load(std::memory_order_acquire)) {
+        if (next_h == tail_.load(std::memory_order_acquire)) 
+        {
             return false;  // full
         }
         buffer_[h] = std::move(item);
@@ -39,9 +45,11 @@ public:
         return true;
     }
 
-    bool pop(T& item) {
+    bool pop(T& item) 
+    {
         const auto t = tail_.load(std::memory_order_relaxed);
-        if (t == head_.load(std::memory_order_acquire)) {
+        if (t == head_.load(std::memory_order_acquire)) 
+        {
             return false;  // empty
         }
         item = std::move(buffer_[t]);
@@ -49,7 +57,8 @@ public:
         return true;
     }
 
-    bool empty() const noexcept {
+    bool empty() const noexcept 
+    {
         return head_.load(std::memory_order_acquire) == 
                tail_.load(std::memory_order_acquire);
     }
