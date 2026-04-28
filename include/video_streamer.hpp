@@ -1,5 +1,6 @@
 #pragma once
 #include "lock_free_queue.hpp"
+#include "h_264.hpp"
 #include <thread>
 #include <concepts>
 #include <span>
@@ -15,9 +16,24 @@ concept TransportPolicy = requires(T t, std::span<const uint8_t> data)
     { t.close() };
 };
 
-template<TransportPolicy Transport>
+template<typename T>
+concept EncoderPolicy = requires(
+    T encoder,
+    const Frame& frame,
+    uint32_t width,
+    uint32_t height,
+    uint32_t fps,
+    uint32_t bitrate
+)
+{
+    { encoder.init(width, height, fps, bitrate) };
+    { encoder.close() };
+};
+
+template<TransportPolicy Transport, EncoderPolicy Encoder>
 class VideoStreamer 
 {
+    Encoder encoder_;
     Transport transport_;
     LockFreeQueue<Frame, 64>& queue_;
     std::jthread worker_;
@@ -31,7 +47,10 @@ class VideoStreamer
             Frame frame;
             if (queue_.pop(frame)) 
 			{
-                transport_.send(std::span<const uint8_t>(frame.data.data(), frame.data.size()));
+                auto encoder_sink = [this](std::span<const uint8_t> packet) -> bool {
+                    return transport_.send(packet);
+                };
+                encoder_.encode(frame, encoder_sink);
                 frames_sent_++;
                 spin_count = 0;
             } else {
@@ -51,9 +70,16 @@ class VideoStreamer
 public:
     explicit VideoStreamer(LockFreeQueue<Frame, 64>& q) : queue_(q) {}
 
-    bool start(const char* ip, uint16_t port) 
+    bool start(const char* ip, uint16_t port, uint32_t width, uint32_t height, uint32_t fps, uint32_t bitrate) 
 	{
         if (!transport_.open(ip, port)) return false;
+        try {
+            encoder_.init(width, height, fps, bitrate);
+        } catch (const std::exception& e) {
+            std::string message = std::format("Encoder init failed: {}\n", e.what());
+            std::printf(message.data());
+            return false;
+        }
         worker_ = std::jthread([this](std::stop_token st) { run(st); });
         return true;
     }

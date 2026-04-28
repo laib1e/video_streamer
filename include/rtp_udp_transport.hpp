@@ -25,7 +25,8 @@ public:
 
         dest_.sin_family = AF_INET;
         dest_.sin_port = htons(port);
-        if (inet_pton(AF_INET, ip, &dest_.sin_addr) <= 0) {
+        if (inet_pton(AF_INET, ip, &dest_.sin_addr) <= 0) 
+        {
             ::close(sock_);
             sock_ = -1;
             return false;

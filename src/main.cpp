@@ -2,6 +2,8 @@
 #include "camera_sources.hpp"
 #include "video_streamer.hpp"
 #include "rtp_udp_transport.hpp"
+#include "h_264.hpp"
+#include "FileTransport.hpp"
 
 #include <cstdio>
 #include <chrono>
@@ -23,9 +25,9 @@ int main(int argc, char* argv[]) {
 
     LockFreeQueue<Frame, 64> queue;
     CameraSource camera(queue, fps, 320, 240, "/dev/video0");
-    VideoStreamer<RtpUdpTransport> streamer(queue);
+    VideoStreamer<RtpUdpTransport, H264Encoder> streamer(queue);
 
-    if (!streamer.start(dest_ip, dest_port)) 
+    if (!streamer.start(dest_ip, dest_port, 320, 240, fps, 300000)) 
 	{
         std::fprintf(stderr, "Failed to start streamer\n");
         return 1;
@@ -33,7 +35,13 @@ int main(int argc, char* argv[]) {
 	std::string start_message = std::format("[OK] Streamer started (RtpUdpTransport -> {}:{})\n", dest_ip, dest_port);
     std::printf(start_message.data());
 
-    camera.start();
+    try {
+        camera.start();
+    } catch (const std::exception& e) {
+		std::string message = std::format("Camera start failed: {}\n", e.what());
+		std::printf(message.data());
+        return -1;
+    }
 
     std::signal(SIGINT, signal_handler);
     auto start = std::chrono::steady_clock::now();
@@ -48,7 +56,6 @@ int main(int argc, char* argv[]) {
     }
 
     std::printf("\n[..] Stopping...\n");
-    camera.stop();
     streamer.stop();
 
 	

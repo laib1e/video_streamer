@@ -1,5 +1,6 @@
 #pragma once
 #include "lock_free_queue.hpp"
+#include "Frame.hpp"
 #include <thread>
 #include <chrono>
 #include <cstdio>
@@ -14,14 +15,6 @@
 #include <sys/mman.h>
 #include <linux/videodev2.h>
 #include <cstring>
-
-struct Frame {
-    uint32_t width = 0;
-    uint32_t height = 0;
-    uint32_t sequence = 0;
-    uint64_t timestamp_us = 0;
-    std::vector<uint8_t> data;
-};
 
 class CameraSource {
     LockFreeQueue<Frame, 64>& queue_;
@@ -49,25 +42,47 @@ class CameraSource {
 
         while (!st.stop_requested()) 
 		{
-            Frame f;
-            f.width = width_;
-            f.height = height_;
-            f.sequence = frame_seq_++;
-            f.timestamp_us = duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count();
-
 			struct v4l2_buffer buf;
 			std::memset(&buf, 0, sizeof(buf));
 			buf.type 	= V4L2_BUF_TYPE_VIDEO_CAPTURE;
 			buf.memory 	= V4L2_MEMORY_MMAP;
 
-			ioctl(fd_dev_, VIDIOC_DQBUF, &buf);
-			auto* capture_ptr = reinterpret_cast<uint8_t*>(buffers[buf.index].start);
+			if (ioctl(fd_dev_, VIDIOC_DQBUF, &buf) < 0)
+			{
+				if (errno == EINTR)
+					continue;
+
+				std::string error_str = std::format("VIDIOC_DQBUF: ERROR {}, {}\n", errno, strerror(errno));
+				std::printf(error_str.data());
+				continue;
+			}
 			
+			if (buf.bytesused == 0)
+			{
+				std::string error_str = std::format("Empty V4L2 buffer: index={} bytesused=0\n", buf.index);
+				std::printf(error_str.data());
+
+				ioctl(fd_dev_, VIDIOC_QBUF, &buf);
+				continue;
+			}
+
+            Frame f;
+            f.width = width_;
+            f.height = height_;
+            f.sequence = frame_seq_++;
+            f.timestamp_us = duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count();
+			auto* capture_ptr = reinterpret_cast<uint8_t*>(buffers[buf.index].start);
+
             f.data.assign(capture_ptr, capture_ptr + buf.bytesused);
 
-			ioctl(fd_dev_, VIDIOC_QBUF, &buf);
+			if (ioctl(fd_dev_, VIDIOC_QBUF, &buf) < 0)
+			{
+				std::string error_str = std::format("VIDIOC_QBUF failed: {}, {}\n", errno, strerror(errno));
+				std::printf(error_str.data());
+				continue;
+			}
 
-            if (!queue_.push(std::move(f))) 
+            if (not queue_.push(std::move(f))) 
 			{
                 continue;
             }
@@ -244,23 +259,22 @@ public:
             worker_.request_stop();
             worker_.join();
         }
-
 		enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		if (ioctl(fd_dev_, VIDIOC_STREAMOFF, &type) < 0) 
 		{			
 			std::string error_str = std::format("VIDIOC_STREAMOFF: ERROR {}, {}\n", errno, strerror(errno));
-			throw std::runtime_error(error_str);
+			std::printf(error_str.data());
 		}
 		for (int i = 0; i < num_buffer; ++i) 
 		{
 			if (munmap((void*)buffers[i].start, buffers[i].length)) 
 			{
-				throw std::runtime_error("munmap\n");
+				std::printf("munmap\n");
 			}
 		}
 		if (close(fd_dev_) < 0) 
 		{
-			throw std::runtime_error("exit\n");
+			std::printf("exit\n");
 		}
 		fd_dev_ = -1;
     }
