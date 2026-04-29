@@ -20,6 +20,9 @@ class CameraSource {
     LockFreeQueue<Frame, 64>& queue_;
     std::jthread worker_;
     uint32_t frame_seq_ = 0;
+	uint32_t frame_error_ = 0;
+	uint32_t frame_empty_ = 0;
+
     uint32_t target_fps_;
     uint32_t width_;
     uint32_t height_;
@@ -57,11 +60,16 @@ class CameraSource {
 				continue;
 			}
 			
+			if (buf.flags & V4L2_BUF_FLAG_ERROR)
+			{
+				frame_error_++;
+				ioctl(fd_dev_, VIDIOC_QBUF, &buf);
+				continue;
+			}
+
 			if (buf.bytesused == 0)
 			{
-				std::string error_str = std::format("Empty V4L2 buffer: index={} bytesused=0\n", buf.index);
-				std::printf(error_str.data());
-
+				frame_empty_++;
 				ioctl(fd_dev_, VIDIOC_QBUF, &buf);
 				continue;
 			}
@@ -88,7 +96,7 @@ class CameraSource {
             }
 
             next_frame += interval;
-            std::this_thread::sleep_until(next_frame);
+            // std::this_thread::sleep_until(next_frame);
         }
     }
 
@@ -280,6 +288,8 @@ public:
     }
 
     uint32_t frames_take() const { return frame_seq_; }
+	uint32_t frames_bad() const { return frame_error_; }
+	uint32_t frames_empty() const { return frame_empty_; }
 
     ~CameraSource() { stop(); }
 };

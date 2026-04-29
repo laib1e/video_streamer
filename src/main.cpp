@@ -24,10 +24,10 @@ int main(int argc, char* argv[]) {
     int duration_sec = 600;
 
     LockFreeQueue<Frame, 64> queue;
-    CameraSource camera(queue, fps, 320, 240, "/dev/video0");
+    CameraSource camera(queue, fps, 640, 480, "/dev/video14");
     VideoStreamer<RtpUdpTransport, H264Encoder> streamer(queue);
 
-    if (!streamer.start(dest_ip, dest_port, 320, 240, fps, 300000)) 
+    if (!streamer.start(dest_ip, dest_port, 640, 480, fps, 600000)) 
 	{
         std::fprintf(stderr, "Failed to start streamer\n");
         return 1;
@@ -49,7 +49,8 @@ int main(int argc, char* argv[]) {
 	{
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - start).count();
-		std::string message = std::format("  [{}s] camera: {} frames, streamer: {} sent\n", elapsed, camera.frames_take(), streamer.frames_sent());
+		std::string message = std::format("  [{}s] camera: {} frames, streamer: {} sent, v4l2_error: {}, empty: {} \n", 
+            elapsed, camera.frames_take(), streamer.frames_sent(), camera.frames_bad(), camera.frames_empty());
 		std::printf(message.data());
 
         if (elapsed >= duration_sec) break;

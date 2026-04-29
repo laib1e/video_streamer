@@ -67,10 +67,11 @@ public:
 		codec_ctx_->max_b_frames = 0;
 		codec_ctx_->pix_fmt = AV_PIX_FMT_YUV420P;
 
-		if (codec_->id == AV_CODEC_ID_H264 or std::string_view(codec_->name) == "libx264") 
+		if (std::string_view(codec_->name) == "libx264") 
 		{
 			av_opt_set(codec_ctx_->priv_data, "preset", "ultrafast", 0);
 			av_opt_set(codec_ctx_->priv_data, "tune", "zerolatency", 0);
+			av_opt_set(codec_ctx_->priv_data, "x264-params", "bframes=0:rc-lookahead=0:sync-lookahead=0:repeat-headers=1", 0);
 		}
 
 		int ret = avcodec_open2(codec_ctx_, codec_, nullptr);
