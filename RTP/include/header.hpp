@@ -4,7 +4,7 @@
 #include <cstring>
 #include <arpa/inet.h>
 
-struct RtpHeader 
+struct RTPHeader
 {
     uint8_t  version      = 2;
     uint8_t  payload_type = 96;   // dynamic, for video
