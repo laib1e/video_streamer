@@ -4,7 +4,7 @@
 // #include "rtp_udp_transport.hpp"
 // #include "h_264.hpp"
 // #include "FileTransport.hpp"
-// #include "rtsp_server.hpp"
+#include <RTSPServer.hpp>
 
 #include <cstdio>
 #include <chrono>
@@ -24,8 +24,11 @@ int main(int argc, char* argv[]) {
     uint32_t fps = 30;
     int duration_sec = 600;
 
-    rtsp_server<> server(5983);
-    server.run();
+    RTSPServer server(5983);
+    while(true) 
+    {
+        server.run();
+    }
     // LockFreeQueue<Frame, 64> queue;
     // CameraSource camera(queue, fps, 640, 480, "/dev/video14");
     // VideoStreamer<RtpUdpTransport, H264Encoder> streamer(queue);

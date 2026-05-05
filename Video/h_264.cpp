@@ -1,4 +1,3 @@
-#pragma once
 #include "h_264.hpp"
 
 void H264Encoder::init(uint32_t width, uint32_t height, uint32_t fps, uint32_t bitrate)

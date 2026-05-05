@@ -1,8 +1,28 @@
 #pragma once
-#include "request.hpp"
 
 #include <optional>
 #include <charconv>
+#include <string_view>
+
+struct transport_params 
+{
+	std::string_view unicast;
+	std::string_view client_rtp_port;
+	std::string_view client_rtcp_post;
+};
+
+struct request 
+{
+	std::string_view method;
+	std::string_view uri;
+	std::string_view version;
+
+	int cseq = -1;
+
+	transport_params transport;
+	std::string_view session;
+	std::string_view user_agent;
+};
 
 inline constexpr bool is_space(char c) noexcept 
 {
@@ -54,7 +74,7 @@ inline constexpr std::string_view next_token(std::string_view& input) noexcept
 	return clean(token);
 }
 
-inline constexpr std::optional<int> parse_int(std::string_view input) noexcept
+inline std::optional<int> parse_int(std::string_view input) noexcept
 {
 	input = clean(input);
 
@@ -109,6 +129,10 @@ inline std::optional<request> parser(std::string_view raw) noexcept
 
 			result.cseq = *parsed;
 		} else if (key == "Transport") {
+			const auto transport_caret = line.find(";");
+			const auto transport_key = clean(line.substr(0, transport_caret));
+			const auto transport_value = clean(line.substr(transport_caret + 1));
+			
 			result.transport = value;
 		} else if (key == "Session") {
 			result.session = value;

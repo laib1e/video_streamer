@@ -1,4 +1,3 @@
-#pragma once
 #include "FileTransport.hpp"
 
 bool FileTransport::open(const char* path, uint16_t perm) 

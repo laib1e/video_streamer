@@ -1,11 +1,4 @@
-#pragma once
 #include "Camera.hpp"
-
-struct buffer 
-{
-	void* 	  start;
-	size_t 	  length;
-};
 
 void Camera::capture_loop(std::stop_token st) 
 {
@@ -71,9 +64,9 @@ void Camera::capture_loop(std::stop_token st)
 };
 
 Camera::Camera(LockFreeQueue<Frame, 64>& q, 
-				uint32_t fps = 30, 
-				uint32_t w = 320, uint32_t h = 240,
-				const char* devname = "")
+				uint32_t fps, 
+				uint32_t w, uint32_t h,
+				const char* devname)
 	: queue_(q), target_fps_(fps), width_(w), height_(h)
 {
 	struct stat st;

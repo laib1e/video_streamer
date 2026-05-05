@@ -16,6 +16,12 @@
 #include <linux/videodev2.h>
 #include <cstring>
 
+struct buffer 
+{
+	void* 	  start;
+	size_t 	  length;
+};
+
 class Camera 
 {
 public:
