@@ -78,8 +78,7 @@ void H264Encoder::init(uint32_t width, uint32_t height, uint32_t fps, uint32_t b
 
 }
 
-template<EncodedDataSink Sink>
-bool H264Encoder::encode(const Frame& frame, Sink&& sink)
+bool H264Encoder::encode(const Frame& frame, const EncodedDataCallback& sink)
 {
 	const uint8_t* src_data[4] = { frame.data.data(), nullptr, nullptr, nullptr };
 	int src_linesize[4]		   = { static_cast<int>(width_ * 2), 0, 0, 0 };

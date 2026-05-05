@@ -59,7 +59,7 @@ void Camera::capture_loop(std::stop_token st)
 		}
 
 		next_frame += interval;
-		// std::this_thread::sleep_until(next_frame);
+		std::this_thread::sleep_until(next_frame);
 	}
 };
 

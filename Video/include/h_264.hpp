@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <format>
 #include <concepts>
+#include <functional>
+
 
 extern "C" 
 {
@@ -15,19 +17,15 @@ extern "C"
 	#include <libswscale/swscale.h>
 }
 
-template<typename Sink>
-concept EncodedDataSink = requires(Sink sink, std::span<const uint8_t> data)
-{
-    { sink(data) } -> std::convertible_to<bool>;
-};
+using EncodedDataCallback = std::function<bool(std::span<const uint8_t>)>;
 
 class H264Encoder
 {
 public:
 	void init(uint32_t width, uint32_t height, uint32_t fps, uint32_t bitrate);
 
-	template<EncodedDataSink Sink>
-	bool encode(const Frame& frame, Sink&& sink);
+	bool encode(const Frame& frame, const EncodedDataCallback& sink);
+	
 	void close();
 
 	H264Encoder() = default;
