@@ -15,4 +15,4 @@ file(GLOB SOURCES "main.cpp")
 add_executable(streamer ${SOURCES})
 target_link_libraries(Video PRIVATE LockFreeQueue)
 
-target_link_libraries(streamer PRIVATE LockFreeQueue VideoStreamer RTSP RTP Video pthread ${FFMPEG_LIBRARIES})
+target_link_libraries(streamer PRIVATE LockFreeQueue VideoStreamer RTSP RTP Video pthread)

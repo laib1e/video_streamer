@@ -11,3 +11,4 @@ pkg_check_modules(FFMPEG REQUIRED
 file(GLOB SOURCES "*.cpp")
 add_library(Video STATIC ${SOURCES})
 target_include_directories(Video PUBLIC ${FFMPEG_INCLUDE_DIRS} include)
+target_link_libraries(Video PRIVATE ${FFMPEG_LIBRARIES})
