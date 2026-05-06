@@ -3,8 +3,8 @@
 void Camera::capture_loop(std::stop_token st) 
 {
 	using namespace std::chrono;
-	auto next_frame = steady_clock::now();
-	auto interval = milliseconds(1000 / target_fps_);
+	// auto next_frame = steady_clock::now();
+	// auto interval = milliseconds(1000 / target_fps_);
 
 	while (!st.stop_requested()) 
 	{
@@ -36,12 +36,14 @@ void Camera::capture_loop(std::stop_token st)
 			ioctl(fd_dev_, VIDIOC_QBUF, &buf);
 			continue;
 		}
+		const auto now = std::chrono::steady_clock::now().time_since_epoch();
 
 		Frame f;
 		f.width = width_;
 		f.height = height_;
 		f.sequence = frame_seq_++;
-		f.timestamp_us = duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count();
+		f.timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(now).count();
+		
 		auto* capture_ptr = reinterpret_cast<uint8_t*>(buffers[buf.index].start);
 
 		f.data.assign(capture_ptr, capture_ptr + buf.bytesused);
@@ -58,8 +60,8 @@ void Camera::capture_loop(std::stop_token st)
 			continue;
 		}
 
-		next_frame += interval;
-		std::this_thread::sleep_until(next_frame);
+		// next_frame += interval;
+		// std::this_thread::sleep_until(next_frame);
 	}
 };
 

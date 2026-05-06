@@ -19,7 +19,7 @@ class RTPServer
 {
 public:
 	bool open(const char* ip, uint16_t port);
-	bool send(std::span<const uint8_t> payload);
+	bool send(std::span<const uint8_t> payload, uint64_t frame_timestamp_us);
     void close();
 
     RTPServer() = default;
@@ -39,8 +39,14 @@ private:
     H264Parser parser_;
     std::vector<uint8_t> packet_buf_;
     
-    uint32_t fps_ = 30;
-    uint32_t timestamp_step_ = 3000;
+    static constexpr uint32_t rtp_clock_rate_ = 90000;
+
+    bool timestamp_started_ = false;
+    uint64_t first_frame_timestamp_us_ = 0;
+    uint32_t initial_rtp_timestamp_ = 0;
+
+    uint32_t make_rtp_timestamp(uint64_t frame_timestamp_us);
+    static uint32_t generate_initial_timestamp();
 
     ssize_t RTP_Packetizer(std::span<const uint8_t> payload) noexcept;
 };

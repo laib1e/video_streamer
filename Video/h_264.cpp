@@ -32,7 +32,7 @@ void H264Encoder::init(uint32_t width, uint32_t height, uint32_t fps, uint32_t b
 	{
 		av_opt_set(codec_ctx_.get()->priv_data, "preset", "ultrafast", 0);
 		av_opt_set(codec_ctx_.get()->priv_data, "tune", "zerolatency", 0);
-		av_opt_set(codec_ctx_.get()->priv_data, "x264-params", "bframes=0:rc-lookahead=0:sync-lookahead=0:repeat-headers=1", 0);
+		av_opt_set(codec_ctx_.get()->priv_data, "x264-params", "bframes=0:rc-lookahead=0:sync-lookahead=0:keyint=8:min-keyint=8:scenecut=0:repeat-headers=1", 0);
 	}
 
 	int ret = avcodec_open2(codec_ctx_.get(), codec_, nullptr);
@@ -104,7 +104,6 @@ bool H264Encoder::encode(const Frame& frame, const EncodedDataCallback& sink)
 		throw std::runtime_error("sws_scale failed");
 
 	yuv_frame_.get()->pts = pts_++;
-	codec_ctx_.get()->time_base = AVRational{1, static_cast<int>(fps_)};
 
 	ret = avcodec_send_frame(codec_ctx_.get(), yuv_frame_.get());
 	if (ret < 0) 

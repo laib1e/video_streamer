@@ -7,11 +7,12 @@
 #include <chrono>
 #include <functional>
 #include <cstdio>
+#include <iostream>
 
 template<typename T>
-concept TransportPolicy = requires(T t, std::span<const uint8_t> data) 
+concept TransportPolicy = requires(T t, std::span<const uint8_t> data, uint64_t timestamp_us) 
 {
-    { t.send(data) } -> std::convertible_to<bool>;
+    { t.send(data, timestamp_us) } -> std::convertible_to<bool>;
     { t.open(std::declval<const char*>(), uint16_t{}) } -> std::convertible_to<bool>;
     { t.close() };
 };
@@ -68,8 +69,19 @@ void VideoStreamer<Transport, Encoder>::run(std::stop_token st)
 		Frame frame;
 		if (queue_.pop(frame)) 
 		{
-			auto encoder_sink = [this](std::span<const uint8_t> packet) -> bool {
-				return transport_.send(packet);
+			const uint64_t frame_ts = frame.timestamp_us;
+			//debug
+			// static uint64_t last_frame_ts_us = 0;
+
+			// if (last_frame_ts_us != 0) {
+			// 	const auto delta_us = frame.timestamp_us - last_frame_ts_us;
+			// 	std::cout << "frame delta ms=" << delta_us / 1000.0 << "\n";
+			// }
+
+			// last_frame_ts_us = frame.timestamp_us;
+			//debug
+			auto encoder_sink = [this, frame_ts](std::span<const uint8_t> packet) -> bool {
+				return transport_.send(packet, frame_ts);
 			};
 			encoder_.encode(frame, encoder_sink);
 			frames_sent_++;

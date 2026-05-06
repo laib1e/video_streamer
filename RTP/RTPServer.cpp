@@ -1,4 +1,5 @@
 #include "RTPServer.hpp"
+#include <random>
 
 bool RTPServer::open(const char* ip, uint16_t port) 
 {
@@ -13,8 +14,29 @@ bool RTPServer::open(const char* ip, uint16_t port)
         sock_ = -1;
         return false;
     }
-    timestamp_step_ = 90000 / fps_;
     return true;
+}
+
+uint32_t RTPServer::generate_initial_timestamp()
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<uint32_t> dist;
+    return dist(gen);
+}
+
+uint32_t RTPServer::make_rtp_timestamp(uint64_t frame_timestamp_us)
+{
+    if (!timestamp_started_) 
+    {
+        first_frame_timestamp_us_ = frame_timestamp_us;
+        initial_rtp_timestamp_ = generate_initial_timestamp();
+        timestamp_started_ = true;
+    }
+
+    const uint64_t elapsed_us = frame_timestamp_us - first_frame_timestamp_us_;
+
+    return initial_rtp_timestamp_ + static_cast<uint32_t>((elapsed_us * rtp_clock_rate_) / 1'000'000ULL);
 }
 
 ssize_t RTPServer::RTP_Packetizer(std::span<const uint8_t> payload) noexcept
@@ -26,11 +48,24 @@ ssize_t RTPServer::RTP_Packetizer(std::span<const uint8_t> payload) noexcept
     return sendto(sock_, packet_buf_.data(), packet_buf_.size(), 0, (sockaddr*)&dest_, sizeof(dest_));
 }
 
-bool RTPServer::send(std::span<const uint8_t> payload) 
+bool RTPServer::send(std::span<const uint8_t> payload, uint64_t frame_timestamp_us) 
 {
     ssize_t sent = 0;
     if (sock_ < 0 or payload.empty()) return false;
+    
+    header_.timestamp = make_rtp_timestamp(frame_timestamp_us);
+    // debug
+    // static uint32_t last_ts = 0;
+    // static bool has_last = false;
 
+    // if (has_last) {
+    //     uint32_t delta = header_.timestamp - last_ts;
+    //     std::printf("rtp ts delta=%u\n", delta);
+    // }
+
+    // last_ts = header_.timestamp;
+    // has_last = true;
+    // debug
     NALUnit nals = parser_(payload);
     
     if (nals.empty())
@@ -64,8 +99,6 @@ bool RTPServer::send(std::span<const uint8_t> payload)
             });
         }
     }
-
-    header_.timestamp += timestamp_step_;
     return sent > 0;
 }
 
