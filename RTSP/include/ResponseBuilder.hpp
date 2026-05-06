@@ -40,6 +40,8 @@ public:
 		return std::move(data_);
 	}
 
+	~ResponseBuilder() = default;
+
 private:
 	std::string data_;
 };
