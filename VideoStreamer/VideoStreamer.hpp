@@ -127,6 +127,7 @@ void VideoStreamer<Transport, Encoder>::stop()
 		worker_.request_stop();
 		worker_.join();
 	}
+	encoder_.close();
 	transport_.close();
 }
 

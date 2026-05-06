@@ -13,15 +13,11 @@
 
 using H264RTPVideoStream = VideoStreamer<RTPServer, H264Encoder>;
 
-int main(int argc, char* argv[]) {
-    const char* dest_ip = "192.168.0.253";
-    uint16_t dest_port = 9000;
-    uint32_t fps = 30;
-    int duration_sec = 600;
-
+int main(int argc, char* argv[]) 
+{
     LockFreeQueue<Frame, 64> queue;
-    Camera camera(queue, fps, 640, 480, "/dev/video14");
-    H264RTPVideoStream streamer(queue, 640, 480, fps, 600000);
+    Camera camera(queue, 30, 640, 480, "/dev/video14");
+    H264RTPVideoStream streamer(queue, 640, 480, 30, 600000);
     RTSPServer<H264RTPVideoStream> server(5983, streamer);
     try {
         camera.start();

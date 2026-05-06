@@ -27,16 +27,20 @@ public:
 
     RTPServer(const RTPServer&) = delete;
     RTPServer& operator=(const RTPServer&) = delete;
-    RTPServer(RTPServer&& other) noexcept;
-    RTPServer& operator=(RTPServer&& other) noexcept;
+    RTPServer(RTPServer&& other) = delete;
+    RTPServer& operator=(RTPServer&& other) = delete;
 
 private:
+	static constexpr int max_payload = 1200;
+
     int sock_ = -1;
     sockaddr_in dest_{};
     RTPHeader header_{};
     H264Parser parser_;
     std::vector<uint8_t> packet_buf_;
+    
     uint32_t fps_ = 30;
     uint32_t timestamp_step_ = 3000;
-	const int max_payload = 1200;
+
+    ssize_t RTP_Packetizer(std::span<const uint8_t> payload) noexcept;
 };
