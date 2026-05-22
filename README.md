@@ -517,7 +517,3 @@ encoded stream fanout
 - улучшить resource ownership через RAII;
 - добавить более чистый CMake layout;
 - добавить scripts/systemd для запуска сервиса.
-
-## License
-
-MIT
